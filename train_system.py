@@ -32,8 +32,8 @@ import torch
 from filelock import FileLock
 from torch.utils.data.dataset import Dataset
 from transformers import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP, AutoConfig, AutoModelForSequenceClassification, \
-    AutoTokenizer, DataCollatorForTokenClassification, EvalPrediction, HfArgumentParser, Trainer, TrainingArguments, \
-    set_seed
+    AutoTokenizer, DataCollatorForTokenClassification, DataCollatorWithPadding, EvalPrediction, HfArgumentParser, \
+    Trainer, TrainingArguments, set_seed
 from transformers.data.metrics import acc_and_f1
 from transformers.data.processors.utils import DataProcessor, InputExample, InputFeatures
 from transformers.tokenization_utils import PreTrainedTokenizer
@@ -192,7 +192,6 @@ def main():
 
     model_name = model_args.model_name_or_path
 
-
     config = AutoConfig.from_pretrained(
         model_args.config_name
         if model_args.config_name else model_args.model_name_or_path,
@@ -238,8 +237,12 @@ def main():
                                        cache_dir=model_args.cache_dir)
                     if training_args.do_predict else None)
 
-    data_collator = DataCollatorForTokenClassification(
-        tokenizer, pad_to_multiple_of=8 if training_args.fp16 else None)
+    if tagger[0] == "tagging":
+        data_collator = DataCollatorForTokenClassification(
+            tokenizer, pad_to_multiple_of=8 if training_args.fp16 else None)
+    else:
+        data_collator = DataCollatorWithPadding(
+            tokenizer, pad_to_multiple_of=8 if training_args.fp16 else None)
 
     best_eval_results = None
     output_eval_file = os.path.join(training_args.output_dir,
@@ -379,6 +382,7 @@ def main():
         if training_args.do_eval:
             predictions_eval, labels_eval, metrics_eval = trainer.predict(
                 eval_dataset)
+
             predictions_eval = np.argmax(predictions_eval[0], axis=2)
             label_list_eval = eval_dataset.get_labels()[0]
             true_predictions_eval = [[

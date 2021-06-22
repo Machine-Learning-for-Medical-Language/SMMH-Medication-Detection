@@ -91,7 +91,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
                  layer=-1,
                  freeze=False,
                  tokens=False,
-                 tagger=False):
+                 tagger=[False]):
         super().__init__(config)
         self.num_labels = num_labels_list
 
@@ -163,17 +163,17 @@ class CnlpBertForClassification(BertPreTrainedModel):
             if labels is not None:
 
                 loss_fct = CrossEntropyLoss()
-
-                if attention_mask is not None:
-                    active_loss = attention_mask.view(-1) == 1
-                    active_logits = task_logits.view(-1, task_num_labels)
-                    active_labels = torch.where(
-                        active_loss, labels.view(-1),
-                        torch.tensor(loss_fct.ignore_index).type_as(labels))
-                    task_loss = loss_fct(active_logits, active_labels)
+                if self.tagger[task_ind] == True:
+                    if attention_mask is not None:
+                        active_loss = attention_mask.view(-1) == 1
+                        active_logits = task_logits.view(-1, task_num_labels)
+                        active_labels = torch.where(
+                            active_loss, labels.view(-1),
+                            torch.tensor(loss_fct.ignore_index).type_as(labels))
+                        task_loss = loss_fct(active_logits, active_labels)
                 else:
                     task_loss = loss_fct(task_logits.view(-1, task_num_labels),
-                                         labels.view(-1))
+                                        labels.view(-1))
 
                 if loss is None:
                     loss = task_loss

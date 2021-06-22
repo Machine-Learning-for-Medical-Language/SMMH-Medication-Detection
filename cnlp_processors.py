@@ -55,6 +55,16 @@ def acc_and_f1(preds, labels):
     }
 
 
+def acc_and_f1_positive(preds, labels):
+    acc = simple_accuracy(preds, labels)
+    f1 = f1_score(y_true=labels, y_pred=preds, average='binary')
+    return {
+        "acc": acc,
+        "f1": f1,
+        "acc_and_f1": (acc + f1) / 2,
+    }
+
+
 tasks = {'polarity', 'dtr', 'alink', 'alinkx', 'tlink'}
 
 
@@ -79,6 +89,8 @@ def cnlp_compute_metrics(task_name, preds, labels):
     elif task_name == 'timex' or task_name == 'event' or task_name == "ner_test":
         return tagging_metrics(task_name, preds, labels)
     elif task_name == 'st_joint' or task_name == 'cn_joint':
+        return acc_and_f1(preds, labels)
+    elif task_name == 'smm4h':
         return acc_and_f1(preds, labels)
 
 
@@ -279,7 +291,6 @@ class NerProcessor(SequenceProcessor):
 
     def get_labels(self):
 
-
         ################### semantic types ############################
         import read_files as read
         semantic_type_label = read.textfile2list("data/umls/umls_st.txt")
@@ -314,6 +325,56 @@ class NerProcessor(SequenceProcessor):
         # tagger_labels.append('B-CUI_less')
         # tagger_labels.append('I-CUI_less')
         # return tagger_labels
+
+
+class SMM4H_Processor(CnlpProcessor):
+    def _create_examples(self, lines, set_type, sequence=False):
+        test_mode = set_type == "test"
+        examples = []
+        for (i, line) in enumerate(lines):
+            guid = "%s-%s" % (set_type, i)
+            if test_mode:
+                # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
+                # we know which part of the line has the data.
+                if len(line) > 1:
+                    text_a = '\t'.join(line[1:])
+                    if sequence:
+                        label = line[0].split(' ')
+
+                    else:
+                        label = line[0]
+                else:
+                    text_a = '\t'.join(line[1:])
+                    label = None
+            else:
+                if sequence:
+                    label = line[0].split(' ')
+
+                else:
+                    label = line[0]
+                text_a = '\t'.join(line[1:])
+
+            if set_type == 'train' and not sequence and label in self.downsampling:
+                dart = random.random()
+                # if downsampling is set to 0.1 then sample 10% of those instances.
+                # so if our randomly generated number is bigger than our downsampling rate
+                # we skip this instance.
+                if dart > self.downsampling[label]:
+                    continue
+            examples.append(
+                InputExample(guid=guid,
+                             text_a=text_a,
+                             text_b=None,
+                             label=label))
+        return examples
+
+    def get_one_score(self, results):
+        return results['f1']
+
+    def get_labels(self):
+        concept_labels = ["0", "1"]
+
+        return concept_labels
 
 
 class StJointProcessor(CnlpProcessor):
@@ -481,7 +542,7 @@ cnlp_processors = {
     'event': EventProcessor,
     'ner_test': NerProcessor,
     'st_joint': StJointProcessor,
-    'cn_joint': CnJointProcessor,
+    'smm4h': SMM4H_Processor
 }
 
 # cnlp_num_labels = { 'polarity': 2,
@@ -513,4 +574,5 @@ cnlp_output_modes = {
     'ner_test': tagging,
     'st_joint': classification,
     'cn_joint': classification,
+    'smm4h': classification
 }

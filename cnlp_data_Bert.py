@@ -62,7 +62,7 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
                                       task=None,
                                       label_list=None,
                                       output_mode=None,
-                                      token_classify=False,
+                                      max_seq_length=None,
                                       pad_to_max_length=False):
     # event_start_ind = tokenizer.convert_tokens_to_ids('<e>')
     # event_end_ind = tokenizer.convert_tokens_to_ids('</e>')
@@ -106,18 +106,20 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
     if output_mode == 'tagging':
         sentences = [sent.split(" ") for sent in sentences]
 
-    for idx, sentence in enumerate(sentences):
-        if labels[idx] is not None and len(labels[idx]) != len(sentence):
-            raise ValueError("Issues with the sentence split!")
+        for idx, sentence in enumerate(sentences):
+            if labels[idx] is not None and len(labels[idx]) != len(sentence):
+                raise ValueError("Issues with the sentence split!")
 
-    padding = "max_length" if pad_to_max_length else False
+    padding = False
+    max_seq_length = min(max_seq_length, tokenizer.model_max_length)
 
     batch_encoding = tokenizer(
         sentences,
         padding=padding,
         truncation=True,
+        max_length=max_seq_length,
         # We use this argument because the texts in our dataset are lists of words (with a label for each word).
-        is_split_into_words=True,
+        is_split_into_words=False,
     )
 
     def tokenize_and_align_labels(labels):
@@ -170,13 +172,13 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
         # else:
         #     inputs['event_tokens'] = [1] * len(inputs['input_ids'])
         if labels[0] is not None:
-            feature = InputFeatures(**inputs, labels=labels_new[i])
+            feature = InputFeatures(**inputs, labels=labels[i])
         else:
             feature = InputFeatures(**inputs)
-
-        if labels[0] is not None and len(inputs['input_ids']) != len(
-                labels_new[i]):
-            raise ValueError("Issues with the sentence split!")
+        if output_mode == 'tagging':
+            if labels[0] is not None and len(inputs['input_ids']) != len(
+                    labels[i]):
+                raise ValueError("Issues with the sentence split!")
         features.append(feature)
 
     for i, example in enumerate(examples[:5]):
@@ -227,6 +229,15 @@ class DataTrainingArguments:
     overwrite_cache: bool = field(
         default=False,
         metadata={"help": "Overwrite the cached training and evaluation sets"})
+
+    max_seq_length: int = field(
+        default=128,
+        metadata={
+            "help":
+            "The maximum total input sequence length after tokenization. Sequences longer "
+            "than this will be truncated, sequences shorter will be padded."
+        },
+    )
 
 
 class ClinicalNlpDataset(Dataset):
@@ -304,6 +315,7 @@ class ClinicalNlpDataset(Dataset):
                         tokenizer,
                         label_list=self.label_lists[task_ind],
                         output_mode=self.output_mode[task_ind],
+                        max_seq_length=args.max_seq_length,
                         pad_to_max_length=args.pad_to_max_length)
                     start = time.time()
                     torch.save(features, cached_features_file)

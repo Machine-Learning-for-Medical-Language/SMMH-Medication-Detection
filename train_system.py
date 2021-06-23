@@ -383,47 +383,81 @@ def main():
             predictions_eval, labels_eval, metrics_eval = trainer.predict(
                 eval_dataset)
 
-            predictions_eval = np.argmax(predictions_eval[0], axis=2)
-            label_list_eval = eval_dataset.get_labels()[0]
-            true_predictions_eval = [[
-                label_list_eval[p] for (p, l) in zip(prediction, label)
-                if l != -100
-            ] for prediction, label in zip(predictions_eval, labels_eval)]
-            output_eval_predictions_file = os.path.join(
-                training_args.output_dir, "eval_predictions.txt")
-            if trainer.is_world_process_zero():
-                with open(output_eval_predictions_file, "w") as writer:
-                    for prediction in true_predictions_eval:
-                        writer.write(" ".join(prediction) + "\n")
+            for task_ind, task_name in enumerate(data_args.task_name):
+                label_list_eval = eval_dataset.get_labels()[task_ind]
+
+                if tagger[task_ind]:
+                    predictions_eval = np.argmax(predictions_eval[task_ind],
+                                                 axis=2)
+                    true_predictions_eval = [[
+                        label_list_eval[p]
+                        for (p, l) in zip(prediction, label) if l != -100
+                    ] for prediction, label in zip(predictions_eval,
+                                                   labels_eval)]
+                    # labels will be -100 where we don't need to tag
+                else:
+                    predictions_eval = np.argmax(predictions_eval[task_ind],
+                                                 axis=1)
+                    true_predictions_eval = [
+                        label_list_eval[prediction] for prediction, label in
+                        zip(predictions_eval, labels_eval) if label != -100
+                    ]
+
+                output_eval_predictions_file = os.path.join(
+                    training_args.output_dir,
+                    "%s_eval_predictions.txt" % task_name)
+                if trainer.is_world_process_zero():
+                    with open(output_eval_predictions_file, "w") as writer:
+                        for prediction in true_predictions_eval:
+                            if tagger[task_ind]:
+                                writer.write(" ".join(prediction) + "\n")
+                            else:
+                                writer.write(prediction + "\n")
 
         logging.info("*** Test ***")
         predictions, labels, metrics = trainer.predict(test_dataset)
-        predictions = np.argmax(predictions[0], axis=2)
-        label_list = test_dataset.get_labels()[0]
-        # Remove ignored index (special tokens)
-        true_predictions = [[
-            label_list[p] for (p, l) in zip(prediction, label) if l != -100
-        ] for prediction, label in zip(predictions, labels)]
+        for task_ind, task_name in enumerate(data_args.task_name):
+            label_list_test = test_dataset.get_labels()[task_ind]
 
-        if trainer.is_world_process_zero():
-            with open(output_test_file, "w") as writer:
-                logger.info("***** test results *****")
-                for key, value in metrics.items():
-                    if key == "eval_ner_test" and isinstance(value, dict):
-                        for key_key, key_value in value.items():
-                            logger.info("  %s = %s", key_key, key_value)
-                            writer.write("%s = %s\n" % (key_key, key_value))
-                    else:
-                        logger.info("  %s = %s", key, value)
-                        writer.write("%s = %s\n" % (key, value))
+            if tagger[task_ind]:
+                predictions = np.argmax(predictions[task_ind], axis=2)
+                true_predictions = [[
+                    label_list_test[p] for (p, l) in zip(prediction, label)
+                    if l != -100
+                ] for prediction, label in zip(predictions, labels)]
+                # labels will be -100 where we don't need to tag
+            else:
+                predictions = np.argmax(predictions[task_ind], axis=1)
+                true_predictions = [
+                    label_list_test[prediction]
+                    for prediction, label in zip(predictions, labels)
+                    if label != -100
+                ]
+            if trainer.is_world_process_zero():
+                with open(output_test_file, "w") as writer:
+                    logger.info("***** test results for task %s *****" %
+                                (task_name))
+                    for key, value in metrics.items():
+                        if key == "eval_ner_test" and isinstance(value, dict):
+                            for key_key, key_value in value.items():
+                                logger.info("  %s = %s", key_key, key_value)
+                                writer.write("%s = %s\n" %
+                                             (key_key, key_value))
+                        else:
+                            logger.info("  %s = %s", key, value)
+                            writer.write("%s = %s\n" % (key, value))
 
-        # Save predictions
-        output_test_predictions_file = os.path.join(training_args.output_dir,
-                                                    "test_predictions.txt")
-        if trainer.is_world_process_zero():
-            with open(output_test_predictions_file, "w") as writer:
-                for prediction in true_predictions:
-                    writer.write(" ".join(prediction) + "\n")
+            # Save predictions
+            output_test_predictions_file = os.path.join(
+                training_args.output_dir,
+                "%s_test_predictions.txt" % task_name)
+            if trainer.is_world_process_zero():
+                with open(output_test_predictions_file, "w") as writer:
+                    for prediction in true_predictions:
+                        if tagger[task_ind]:
+                            writer.write(" ".join(prediction) + "\n")
+                        else:
+                            writer.write(prediction + "\n")
     return eval_results
 
 

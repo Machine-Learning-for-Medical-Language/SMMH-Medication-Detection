@@ -37,7 +37,7 @@ from transformers import ALL_PRETRAINED_CONFIG_ARCHIVE_MAP, AutoConfig, AutoMode
 from transformers.data.metrics import acc_and_f1
 from transformers.data.processors.utils import DataProcessor, InputExample, InputFeatures
 from transformers.tokenization_utils import PreTrainedTokenizer
-from transformers.training_args import EvaluationStrategy
+from transformers.training_args import EvaluationStrategy, IntervalStrategy
 
 from cnlp_data_Bert import ClinicalNlpDataset, DataTrainingArguments
 from cnlp_processors import cnlp_compute_metrics, cnlp_output_modes, cnlp_processors, tagging
@@ -51,20 +51,25 @@ class CnlpTrainingArguments(TrainingArguments):
     """
     Additional arguments specific to this class
     """
-    evals_per_epoch: Optional[int] = field(
-        default=-1,
-        metadata={
-            "help":
-            "Number of times to evaluate and possibly save model per training epoch (allows for a lazy kind of early stopping)"
-        })
+    # evals_per_epoch: Optional[int] = field(
+    #     default=-1,
+    #     metadata={
+    #         "help":
+    #         "Number of times to evaluate and possibly save model per training epoch (allows for a lazy kind of early stopping)"
+    #     })
 
-    train_batch_size: int = field(
-        default=32,
-        metadata={
-            "help":
-            "The maximum total input sequence length after tokenization. Sequences longer "
-            "than this will be truncated, sequences shorter will be padded."
-        },
+    # train_batch_size: int = field(
+    #     default=32,
+    #     metadata={
+    #         "help":
+    #         "The maximum total input sequence length after tokenization. Sequences longer "
+    #         "than this will be truncated, sequences shorter will be padded."
+    #     },
+    # )
+
+    learning_rate: float = field(
+        default=5e-5,
+        metadata={"help": "The learning rate of the optimizer"},
     )
 
     num_train_epochs: int = field(
@@ -73,6 +78,22 @@ class CnlpTrainingArguments(TrainingArguments):
             "help":
             "The maximum total input sequence length after tokenization. Sequences longer "
             "than this will be truncated, sequences shorter will be padded."
+        },
+    )
+
+    eval_accumulation_steps: Optional[int] = field(
+        default=100,
+        metadata={
+            "help":
+            "Number of predictions steps to accumulate before moving the tensors to the CPU."
+        },
+    )
+
+    load_best_model_at_end: Optional[bool] = field(
+        default=True,
+        metadata={
+            "help":
+            "Whether or not to load the best model found during training at the end of training."
         },
     )
 
@@ -222,6 +243,9 @@ def main():
 
     # model.resize_token_embeddings(len(tokenizer))
 
+    train_batch_size = training_args.per_device_train_batch_size * max(
+        1, training_args.n_gpu)
+
     # Get datasets
     train_dataset = (ClinicalNlpDataset(
         data_args, tokenizer=tokenizer, cache_dir=model_args.cache_dir)
@@ -249,24 +273,30 @@ def main():
                                     f"eval_results.txt")
     output_test_file = os.path.join(training_args.output_dir,
                                     f"test_results.txt")
-    if training_args.do_train:
-        batches_per_epoch = math.ceil(
-            len(train_dataset) / training_args.train_batch_size)
-        total_steps = int(training_args.num_train_epochs * batches_per_epoch //
-                          training_args.gradient_accumulation_steps)
+    # if training_args.do_train:
+    #     batches_per_epoch = math.ceil(
+    #         len(train_dataset) / training_args.train_batch_size)
+    #     total_steps = int(training_args.num_train_epochs * batches_per_epoch //
+    #                       training_args.gradient_accumulation_steps)
 
-    if training_args.evals_per_epoch > 0:
-        logger.warning(
-            'Overwriting the value of logging steps based on provided evals_per_epoch argument'
-        )
-        # steps per epoch factors in gradient accumulation steps (as compared to batches_per_epoch above which doesn't)
-        steps_per_epoch = int(total_steps // training_args.num_train_epochs)
-        training_args.eval_steps = steps_per_epoch // training_args.evals_per_epoch
-        training_args.evaluation_strategy = EvaluationStrategy.STEPS
-    elif training_args.do_eval:
-        logger.info(
-            'Evaluation strategy not specified so evaluating every epoch')
-        training_args.evaluation_strategy = EvaluationStrategy.EPOCH
+    # if training_args.evals_per_epoch > 0:
+    #     logger.warning(
+    #         'Overwriting the value of logging steps based on provided evals_per_epoch argument'
+    #     )
+    #     # steps per epoch factors in gradient accumulation steps (as compared to batches_per_epoch above which doesn't)
+    #     steps_per_epoch = int(total_steps // training_args.num_train_epochs)
+    #     training_args.eval_steps = steps_per_epoch // training_args.evals_per_epoch
+    #     training_args.evaluation_strategy = EvaluationStrategy.STEPS
+    # elif training_args.do_eval:
+    #     logger.info(
+    #         'Evaluation strategy not specified so evaluating every epoch')
+    #     training_args.evaluation_strategy = EvaluationStrategy.EPOCH
+
+    training_args.evaluation_strategy = IntervalStrategy.EPOCH
+    training_args.save_strategy = IntervalStrategy.EPOCH
+    training_args.logging_steps = 1000
+    # training_args.eval_steps = 60
+    training_args.logging_strategy = IntervalStrategy.STEPS
 
     def build_compute_metrics_fn(task_names: List[str],
                                  model) -> Callable[[EvalPrediction], Dict]:
@@ -278,11 +308,15 @@ def main():
             #     p = [p]
 
             for task_ind, task_name in enumerate(task_names):
+                num_labels = len(cnlp_processors[task_name]().get_labels())
                 if tagger[task_ind]:
                     preds = np.argmax(p.predictions[task_ind], axis=2)
                     # labels will be -100 where we don't need to tag
                 else:
-                    preds = np.argmax(p.predictions[task_ind], axis=1)
+                    if num_labels == 2:
+                        preds = np.where(p.predictions[task_ind] >= 0.5, 1, 0)
+                    else:
+                        preds = np.argmax(p.predictions[task_ind], axis=1)
 
                 if len(task_names) == 1:
                     labels = p.label_ids
@@ -385,7 +419,7 @@ def main():
 
             for task_ind, task_name in enumerate(data_args.task_name):
                 label_list_eval = eval_dataset.get_labels()[task_ind]
-
+                num_labels = len(cnlp_processors[task_name]().get_labels())
                 if tagger[task_ind]:
                     predictions_eval = np.argmax(predictions_eval[task_ind],
                                                  axis=2)
@@ -396,8 +430,13 @@ def main():
                                                    labels_eval)]
                     # labels will be -100 where we don't need to tag
                 else:
-                    predictions_eval = np.argmax(predictions_eval[task_ind],
-                                                 axis=1)
+                    if len(label_list_eval) == 2:
+                        predictions_eval = np.where(
+                            predictions_eval[task_ind] >= 0.5, 1, 0)
+                    else:
+                        predictions_eval = np.argmax(
+                            predictions_eval[task_ind], axis=1)
+
                     true_predictions_eval = [
                         label_list_eval[prediction] for prediction, label in
                         zip(predictions_eval, labels_eval) if label != -100
@@ -427,7 +466,12 @@ def main():
                 ] for prediction, label in zip(predictions, labels)]
                 # labels will be -100 where we don't need to tag
             else:
-                predictions = np.argmax(predictions[task_ind], axis=1)
+
+                if len(label_list_eval) == 2:
+                    predictions = np.where(predictions[task_ind] >= 0.5, 1, 0)
+                else:
+                    predictions = np.argmax(predictions[task_ind], axis=1)
+
                 true_predictions = [
                     label_list_test[prediction]
                     for prediction, label in zip(predictions, labels)

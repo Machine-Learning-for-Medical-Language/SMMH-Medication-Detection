@@ -20,10 +20,7 @@ logger = logging.getLogger(__name__)
 
 def tagging_metrics(task_name, preds, labels):
     processor = cnlp_processors[task_name]()
-    label_set = processor.get_labels()
-
-    preds = preds.flatten()
-    labels = labels.flatten().astype('int')
+    label_set = processget_one_scoretten().astype('int')
 
     pred_inds = np.where(labels != -100)
     preds = preds[pred_inds]
@@ -91,7 +88,7 @@ def cnlp_compute_metrics(task_name, preds, labels):
     elif task_name == 'st_joint' or task_name == 'cn_joint':
         return acc_and_f1(preds, labels)
     elif task_name == 'smm4h':
-        return acc_and_f1(preds, labels)
+        return acc_and_f1_positive(preds, labels)
 
 
 class CnlpProcessor(DataProcessor):

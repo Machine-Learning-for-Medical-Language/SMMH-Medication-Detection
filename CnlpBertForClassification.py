@@ -86,13 +86,17 @@ class CnlpBertForClassification(BertPreTrainedModel):
     config_class = BertConfig
     base_model_prefix = "bert"
 
-    def __init__(self,
-                 config,
-                 num_labels_list=[2],
-                 layer=-1,
-                 freeze=False,
-                 tokens=False,
-                 tagger=[False]):
+    def __init__(
+            self,
+            config,
+            #  num_labels_list=[3],
+            num_labels_list=[2],
+            layer=-1,
+            freeze=False,
+            tokens=False,
+            tagger=[False]):
+
+        ###### update paramters "num_labels_list" and "tagger" for different tasks #######
         super().__init__(config)
         self.num_labels = num_labels_list
 
@@ -166,7 +170,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
             task_logits = self.classifiers[task_ind](features)
 
             if task_num_labels == 2:
-                task_logits = self.sigmoid(task_logits).view(batch_size)
+                task_logits = self.sigmoid(task_logits).squeeze()
             logits.append(task_logits)
 
             if labels is not None:
@@ -183,14 +187,18 @@ class CnlpBertForClassification(BertPreTrainedModel):
                             torch.tensor(
                                 loss_fct.ignore_index).type_as(labels))
                         task_loss = loss_fct(active_logits, active_labels)
+                    else:
+                        task_loss = loss_fct(
+                            task_logits.view(-1, task_num_labels),
+                            labels.view(-1))
+
                 else:
                     if task_num_labels == 2:
 
                         labels = labels.to(torch.float32)
-                        task_loss = loss_fct(task_logits,
-                                             labels.view(-1))
-                    else:
+                        task_loss = loss_fct(task_logits, labels.view(-1))
 
+                    else:
                         task_loss = loss_fct(
                             task_logits.view(-1, task_num_labels),
                             labels.view(-1))

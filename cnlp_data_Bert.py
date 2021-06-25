@@ -104,11 +104,14 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
         sentences = [(example.text_a, example.text_b) for example in examples]
 
     if output_mode == 'tagging':
-        sentences = [sent.split(" ") for sent in sentences]
 
+        is_split_into_words = True
+        sentences = [sent.split(" ") for sent in sentences]
         for idx, sentence in enumerate(sentences):
             if labels[idx] is not None and len(labels[idx]) != len(sentence):
                 raise ValueError("Issues with the sentence split!")
+    else:
+        is_split_into_words = False
 
     padding = False
     max_seq_length = min(max_seq_length, tokenizer.model_max_length)
@@ -119,7 +122,7 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
         truncation=True,
         max_length=max_seq_length,
         # We use this argument because the texts in our dataset are lists of words (with a label for each word).
-        is_split_into_words=False,
+        is_split_into_words=is_split_into_words,
     )
 
     def tokenize_and_align_labels(labels):

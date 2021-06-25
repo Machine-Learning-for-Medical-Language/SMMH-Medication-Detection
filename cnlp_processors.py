@@ -20,7 +20,10 @@ logger = logging.getLogger(__name__)
 
 def tagging_metrics(task_name, preds, labels):
     processor = cnlp_processors[task_name]()
-    label_set = processget_one_scoretten().astype('int')
+    label_set = processor.get_labels()
+
+    preds = preds.flatten()
+    labels = labels.flatten().astype('int')
 
     pred_inds = np.where(labels != -100)
     preds = preds[pred_inds]
@@ -36,7 +39,7 @@ def tagging_metrics(task_name, preds, labels):
 
     return {
         'acc': acc,
-        'token_f1': f1,
+        # 'token_f1': f1,
         'f1': seq_f1([pred_seq], [label_seq]),
         'report': '\n' + seq_cls([pred_seq], [label_seq])
     }
@@ -89,6 +92,8 @@ def cnlp_compute_metrics(task_name, preds, labels):
         return acc_and_f1(preds, labels)
     elif task_name == 'smm4h':
         return acc_and_f1_positive(preds, labels)
+    elif task_name == 'smm4h_ner':
+        return tagging_metrics(task_name, preds, labels)
 
 
 class CnlpProcessor(DataProcessor):
@@ -130,20 +135,20 @@ class CnlpProcessor(DataProcessor):
                 # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
                 # we know which part of the line has the data.
                 if len(line) > 1:
-                    text_a = '\t'.join(line[1:])
+                    text_a = line[1]
                     if sequence:
                         label = line[0].split(' ')
                     else:
                         label = line[0]
                 else:
-                    text_a = '\t'.join(line[:1])
+                    text_a = line[0]
                     label = None
             else:
                 if sequence:
                     label = line[0].split(' ')
                 else:
                     label = line[0]
-                text_a = '\t'.join(line[1:])
+                text_a = line[1]
 
             if set_type == 'train' and not sequence and label in self.downsampling:
                 dart = random.random()
@@ -325,51 +330,21 @@ class NerProcessor(SequenceProcessor):
 
 
 class SMM4H_Processor(CnlpProcessor):
-    def _create_examples(self, lines, set_type, sequence=False):
-        test_mode = set_type == "test"
-        examples = []
-        for (i, line) in enumerate(lines):
-            guid = "%s-%s" % (set_type, i)
-            if test_mode:
-                # Some test sets have labels and some do not. discard the label if it has it but hvae to check so
-                # we know which part of the line has the data.
-                if len(line) > 1:
-                    text_a = '\t'.join(line[1:])
-                    if sequence:
-                        label = line[0].split(' ')
-
-                    else:
-                        label = line[0]
-                else:
-                    text_a = '\t'.join(line[1:])
-                    label = None
-            else:
-                if sequence:
-                    label = line[0].split(' ')
-
-                else:
-                    label = line[0]
-                text_a = '\t'.join(line[1:])
-
-            if set_type == 'train' and not sequence and label in self.downsampling:
-                dart = random.random()
-                # if downsampling is set to 0.1 then sample 10% of those instances.
-                # so if our randomly generated number is bigger than our downsampling rate
-                # we skip this instance.
-                if dart > self.downsampling[label]:
-                    continue
-            examples.append(
-                InputExample(guid=guid,
-                             text_a=text_a,
-                             text_b=None,
-                             label=label))
-        return examples
-
     def get_one_score(self, results):
         return results['f1']
 
     def get_labels(self):
         concept_labels = ["0", "1"]
+
+        return concept_labels
+
+
+class SMM4H_NER_Processor(SequenceProcessor):
+    def get_one_score(self, results):
+        return results['f1']
+
+    def get_labels(self):
+        concept_labels = ["O", "B-Medication", "I-Medication"]
 
         return concept_labels
 
@@ -539,7 +514,8 @@ cnlp_processors = {
     'event': EventProcessor,
     'ner_test': NerProcessor,
     'st_joint': StJointProcessor,
-    'smm4h': SMM4H_Processor
+    'smm4h': SMM4H_Processor,
+    'smm4h_ner': SMM4H_NER_Processor
 }
 
 # cnlp_num_labels = { 'polarity': 2,
@@ -571,5 +547,6 @@ cnlp_output_modes = {
     'ner_test': tagging,
     'st_joint': classification,
     'cn_joint': classification,
-    'smm4h': classification
+    'smm4h': classification,
+    'smm4h_ner': tagging
 }

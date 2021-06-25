@@ -43,6 +43,8 @@ from cnlp_data_Bert import ClinicalNlpDataset, DataTrainingArguments
 from cnlp_processors import cnlp_compute_metrics, cnlp_output_modes, cnlp_processors, tagging
 from CnlpBertForClassification import CnlpBertForClassification
 
+# from trainer1 import Trainer
+
 logger = logging.getLogger(__name__)
 
 
@@ -261,7 +263,7 @@ def main():
                                        cache_dir=model_args.cache_dir)
                     if training_args.do_predict else None)
 
-    if tagger[0] == "tagging":
+    if tagger[0]:
         data_collator = DataCollatorForTokenClassification(
             tokenizer, pad_to_multiple_of=8 if training_args.fp16 else None)
     else:
@@ -345,8 +347,7 @@ def main():
                                 "***** Eval results for task %s *****" %
                                 (task_name))
                             for key, value in metrics[task_name].items():
-                                if key == "eval_ner_test" and isinstance(
-                                        value, dict):
+                                if isinstance(value, dict):
                                     for key_key, key_value in value.items():
                                         logger.info("  %s = %s", key_key,
                                                     key_value)
@@ -402,7 +403,7 @@ def main():
             with open(output_eval_file, "w") as writer:
                 logger.info("***** Eval results *****")
                 for key, value in eval_result.items():
-                    if key == "eval_ner_test" and isinstance(value, dict):
+                    if isinstance(value, dict):
                         for key_key, key_value in value.items():
                             logger.info("  %s = %s", key_key, key_value)
                             writer.write("%s = %s\n" % (key_key, key_value))

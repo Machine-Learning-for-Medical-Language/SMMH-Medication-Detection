@@ -1,8 +1,8 @@
 python train_system.py \
 --model_name_or_path /home/dongfangxu/Projects/models/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext \
---data_dir /home/dongfangxu/Projects/SSN_Drug_Normalization/data/bert/classifier/smm4h20+_nertoclassifer_smallset/ \
---output_dir /home/dongfangxu/Projects/SSN_Drug_Normalization/data/models/test_smallset/ \
---task_name smm4h \
+--data_dir /home/dongfangxu/Projects/SSN_Drug_Normalization/data/bert/ner/smm4h20+_smallset/ \
+--output_dir /home/dongfangxu/Projects/SSN_Drug_Normalization/data/models/ner_test_smallset/ \
+--task_name smm4h_ner \
 --do_train \
 --do_eval \
 --do_predict \

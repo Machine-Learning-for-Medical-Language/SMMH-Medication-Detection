@@ -5,8 +5,11 @@ from torch import nn
 from torch.nn import CrossEntropyLoss, MSELoss
 from torch.nn.modules.loss import BCELoss
 from transformers.modeling_outputs import SequenceClassifierOutput
-from transformers.models.bert.modeling_bert import BertConfig, BertForSequenceClassification, BertModel, \
-    BertPreTrainedModel
+from transformers.models.roberta.modeling_roberta import RobertaConfig, RobertaForSequenceClassification, \
+    RobertaModel, RobertaPreTrainedModel
+
+# from transformers.models.bert.modeling_bert import BertConfig, BertForSequenceClassification, BertModel, \
+#     BertPreTrainedModel
 
 logger = logging.getLogger(__name__)
 
@@ -82,9 +85,9 @@ class RepresentationProjectionLayer(nn.Module):
         return x
 
 
-class CnlpBertForClassification(BertPreTrainedModel):
-    config_class = BertConfig
-    base_model_prefix = "bert"
+class CnlpBertForClassification(RobertaPreTrainedModel):
+    config_class = RobertaConfig
+    base_model_prefix = "roberta"
 
     def __init__(
             self,
@@ -100,10 +103,10 @@ class CnlpBertForClassification(BertPreTrainedModel):
         super().__init__(config)
         self.num_labels = num_labels_list
 
-        self.bert = BertModel(config)
+        self.roberta = RobertaModel(config)
 
         if freeze:
-            for param in self.bert.parameters():
+            for param in self.roberta.parameters():
                 param.requires_grad = False
 
         self.feature_extractors = nn.ModuleList()
@@ -115,15 +118,15 @@ class CnlpBertForClassification(BertPreTrainedModel):
                                               layer=layer,
                                               tokens=tokens,
                                               tagger=tagger[task_ind]))
-            if task_num_labels == 2:
-                self.classifiers.append(ClassificationHead(config, 1))
-            else:
-                self.classifiers.append(
-                    ClassificationHead(config, task_num_labels))
+            # if task_num_labels == 2:
+            #     self.classifiers.append(ClassificationHead(config, 1))
+            # else:
+            self.classifiers.append(ClassificationHead(config,
+                                                       task_num_labels))
 
         # Are we operating as a sequence classifier (1 label per input sequence) or a tagger (1 label per input token in the sequence)
         self.tagger = tagger
-        self.sigmoid = nn.Sigmoid()
+        # self.sigmoid = nn.Sigmoid()
 
         self.init_weights()
 
@@ -148,15 +151,15 @@ class CnlpBertForClassification(BertPreTrainedModel):
             If :obj:`config.num_labels > 1` a classification loss is computed (Cross-Entropy).
         """
 
-        outputs = self.bert(input_ids,
-                            attention_mask=attention_mask,
-                            token_type_ids=token_type_ids,
-                            position_ids=position_ids,
-                            head_mask=head_mask,
-                            inputs_embeds=inputs_embeds,
-                            output_attentions=output_attentions,
-                            output_hidden_states=True,
-                            return_dict=True)
+        outputs = self.roberta(input_ids,
+                               attention_mask=attention_mask,
+                               token_type_ids=token_type_ids,
+                               position_ids=position_ids,
+                               head_mask=head_mask,
+                               inputs_embeds=inputs_embeds,
+                               output_attentions=output_attentions,
+                               output_hidden_states=True,
+                               return_dict=True)
 
         batch_size, seq_len = input_ids.shape
 
@@ -169,15 +172,20 @@ class CnlpBertForClassification(BertPreTrainedModel):
 
             task_logits = self.classifiers[task_ind](features)
 
-            if task_num_labels == 2:
-                task_logits = self.sigmoid(task_logits).squeeze()
+            # if task_num_labels == 2:
+            #     task_logits = self.sigmoid(task_logits).squeeze(-1)
             logits.append(task_logits)
 
             if labels is not None:
-                if task_num_labels == 2:
-                    loss_fct = BCELoss()
-                else:
-                    loss_fct = CrossEntropyLoss()
+                # if task_num_labels == 2:
+                #     loss_fct = BCELoss()
+                # else:
+                weights = [0.1, 50]
+                class_weights = torch.FloatTensor(weights).to(
+                    task_logits.device)
+                loss_fct = CrossEntropyLoss(weight=class_weights)
+
+                # loss_fct = CrossEntropyLoss(weight=class_weights)
                 if self.tagger[task_ind] == True:
                     if attention_mask is not None:
                         active_loss = attention_mask.view(-1) == 1
@@ -193,15 +201,14 @@ class CnlpBertForClassification(BertPreTrainedModel):
                             labels.view(-1))
 
                 else:
-                    if task_num_labels == 2:
+                    # if task_num_labels == 2:
 
-                        labels = labels.to(torch.float32)
-                        task_loss = loss_fct(task_logits, labels.view(-1))
+                    #     labels = labels.to(torch.float32)
+                    #     task_loss = loss_fct(task_logits, labels.view(-1))
 
-                    else:
-                        task_loss = loss_fct(
-                            task_logits.view(-1, task_num_labels),
-                            labels.view(-1))
+                    # else:
+                    task_loss = loss_fct(task_logits.view(-1, task_num_labels),
+                                         labels.view(-1))
 
                 if loss is None:
                     loss = task_loss

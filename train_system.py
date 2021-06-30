@@ -226,9 +226,10 @@ def main():
         if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         add_prefix_space=True,
-        use_fast=True
+        use_fast=True,
         # revision=model_args.model_revision,
         # use_auth_token=True if model_args.use_auth_token else None,
+        additional_special_tokens=["URL", "@USER"]
         # additional_special_tokens=['<e>', '</e>', '<a1>', '</a1>', '<a2>', '</a2>', '<cr>', '<neg>']
     )
 
@@ -243,7 +244,7 @@ def main():
         freeze=model_args.freeze,
         tagger=tagger)
 
-    # model.resize_token_embeddings(len(tokenizer))
+    model.resize_token_embeddings(len(tokenizer))
 
     train_batch_size = training_args.per_device_train_batch_size * max(
         1, training_args.n_gpu)
@@ -315,10 +316,10 @@ def main():
                     preds = np.argmax(p.predictions[task_ind], axis=2)
                     # labels will be -100 where we don't need to tag
                 else:
-                    if num_labels == 2:
-                        preds = np.where(p.predictions[task_ind] >= 0.5, 1, 0)
-                    else:
-                        preds = np.argmax(p.predictions[task_ind], axis=1)
+                    # if num_labels == 2:
+                    #     preds = np.where(p.predictions[task_ind] >= 0.5, 1, 0)
+                    # else:
+                    preds = np.argmax(p.predictions[task_ind], axis=1)
 
                 if len(task_names) == 1:
                     labels = p.label_ids

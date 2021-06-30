@@ -38,7 +38,7 @@ def collect_tweets(tweets):
     # for key, value in tweets_processed_medication.items():
     #     print(value["text"], value["offsets"], value["span"])
     #     print()
-    tweets_processed_medication.update(tweets_processed_nomedication)
+    # tweets_processed_medication.update(tweets_processed_nomedication)
 
     return tweets_processed_medication
 

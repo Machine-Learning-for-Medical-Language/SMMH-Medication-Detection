@@ -9,7 +9,8 @@ import numpy as np
 import torch
 from seqeval.metrics import classification_report as seq_cls
 from seqeval.metrics import f1_score as seq_f1
-from sklearn.metrics import f1_score, matthews_corrcoef
+# from seqeval.metrics.sequence_labeling import precision_score, recall_score
+from sklearn.metrics import f1_score, matthews_corrcoef, precision_score, recall_score
 from torch.utils.data.dataset import Dataset
 from transformers.data.metrics import simple_accuracy
 from transformers.data.processors.utils import DataProcessor, InputExample
@@ -58,8 +59,13 @@ def acc_and_f1(preds, labels):
 def acc_and_f1_positive(preds, labels):
     acc = simple_accuracy(preds, labels)
     f1 = f1_score(y_true=labels, y_pred=preds, average='binary')
+    precision = precision_score(y_true=labels, y_pred=preds, average='binary')
+    recall = recall_score(y_true=labels, y_pred=preds, average='binary')
+
     return {
         "acc": acc,
+        "precision": precision,
+        "recall": recall,
         "f1": f1,
         "acc_and_f1": (acc + f1) / 2,
     }

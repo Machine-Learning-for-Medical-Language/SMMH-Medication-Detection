@@ -241,5 +241,5 @@ class CnlpBertForClassification(BertPreTrainedModel):
                 attentions=outputs.attentions,
             )
         else:
-            logits[0] = self.softmax(logits[0])
+            logits = [self.softmax(logits[0])]
             return SequenceClassifierOutput(loss=loss, logits=logits)

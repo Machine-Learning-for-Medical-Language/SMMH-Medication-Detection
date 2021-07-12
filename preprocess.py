@@ -98,15 +98,15 @@ def get_medication():
 def upsampling():
     train_input = read.read_from_tsv(
         "data/bert/classifier/smm4h20+_nertoclassifer/train.tsv")
-    print(len(train_input))
+    print(len(train_input))  ###88983
 
     positive = [item for item in train_input if item[0] == "1"]
-    print(len(positive))
+    print(len(positive))  ###218
     train_upsampling = positive * 99 + train_input
 
-    read.save_in_tsv(
-        "data/bert/classifier/smm4h20+_nertoclassifer_upsampling/train.tsv",
-        train_upsampling)
-    
+    # read.save_in_tsv(
+    #     "data/bert/classifier/smm4h20+_nertoclassifer_upsampling/train.tsv",
+    #     train_upsampling)
+
 
 upsampling()

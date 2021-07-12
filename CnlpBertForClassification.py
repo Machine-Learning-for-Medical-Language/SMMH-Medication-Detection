@@ -129,6 +129,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
         # Are we operating as a sequence classifier (1 label per input sequence) or a tagger (1 label per input token in the sequence)
         self.tagger = tagger
         # self.sigmoid = nn.Sigmoid()
+        self.softmax = nn.Softmax(dim=-1)
 
         self.init_weights()
 
@@ -192,10 +193,10 @@ class CnlpBertForClassification(BertPreTrainedModel):
                 # if task_num_labels == 2:
                 #     loss_fct = BCELoss()
                 # else:
-                weights = [0.1, 50]
-                class_weights = torch.FloatTensor(weights).to(
-                    task_logits.device)
-                loss_fct = CrossEntropyLoss(weight=class_weights)
+                # weights = [0.1, 50]
+                # class_weights = torch.FloatTensor(weights).to(
+                #     task_logits.device)
+                loss_fct = CrossEntropyLoss()
 
                 # loss_fct = CrossEntropyLoss()
                 if self.tagger[task_ind] == True:
@@ -240,4 +241,5 @@ class CnlpBertForClassification(BertPreTrainedModel):
                 attentions=outputs.attentions,
             )
         else:
+            logits[0] = self.softmax(logits[0])
             return SequenceClassifierOutput(loss=loss, logits=logits)

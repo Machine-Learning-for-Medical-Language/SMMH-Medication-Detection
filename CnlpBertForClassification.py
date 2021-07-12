@@ -5,11 +5,11 @@ from torch import nn
 from torch.nn import CrossEntropyLoss, MSELoss
 from torch.nn.modules.loss import BCELoss
 from transformers.modeling_outputs import SequenceClassifierOutput
-from transformers.models.roberta.modeling_roberta import RobertaConfig, RobertaForSequenceClassification, \
-    RobertaModel, RobertaPreTrainedModel
+from transformers.models.bert.modeling_bert import BertConfig, BertForSequenceClassification, BertModel, \
+    BertPreTrainedModel
 
-# from transformers.models.bert.modeling_bert import BertConfig, BertForSequenceClassification, BertModel, \
-#     BertPreTrainedModel
+# from transformers.models.roberta.modeling_roberta import RobertaConfig, RobertaForSequenceClassification, \
+#     RobertaModel, RobertaPreTrainedModel
 
 logger = logging.getLogger(__name__)
 
@@ -85,10 +85,8 @@ class RepresentationProjectionLayer(nn.Module):
         return x
 
 
-class CnlpBertForClassification(RobertaPreTrainedModel):
-    config_class = RobertaConfig
-    base_model_prefix = "roberta"
-
+# class CnlpBertForClassification(RobertaPreTrainedModel):
+class CnlpBertForClassification(BertPreTrainedModel):
     def __init__(
             self,
             config,
@@ -103,10 +101,14 @@ class CnlpBertForClassification(RobertaPreTrainedModel):
         super().__init__(config)
         self.num_labels = num_labels_list
 
-        self.roberta = RobertaModel(config)
+        # self.roberta = RobertaModel(config)
+        # if freeze:
+        #     for param in self.roberta.parameters():
+        #         param.requires_grad = False
 
+        self.bert = BertModel(config)
         if freeze:
-            for param in self.roberta.parameters():
+            for param in self.bert.parameters():
                 param.requires_grad = False
 
         self.feature_extractors = nn.ModuleList()
@@ -151,15 +153,25 @@ class CnlpBertForClassification(RobertaPreTrainedModel):
             If :obj:`config.num_labels > 1` a classification loss is computed (Cross-Entropy).
         """
 
-        outputs = self.roberta(input_ids,
-                               attention_mask=attention_mask,
-                               token_type_ids=token_type_ids,
-                               position_ids=position_ids,
-                               head_mask=head_mask,
-                               inputs_embeds=inputs_embeds,
-                               output_attentions=output_attentions,
-                               output_hidden_states=True,
-                               return_dict=True)
+        # outputs = self.roberta(input_ids,
+        #                        attention_mask=attention_mask,
+        #                        token_type_ids=token_type_ids,
+        #                        position_ids=position_ids,
+        #                        head_mask=head_mask,
+        #                        inputs_embeds=inputs_embeds,
+        #                        output_attentions=output_attentions,
+        #                        output_hidden_states=True,
+        #                        return_dict=True)
+
+        outputs = self.bert(input_ids,
+                            attention_mask=attention_mask,
+                            token_type_ids=token_type_ids,
+                            position_ids=position_ids,
+                            head_mask=head_mask,
+                            inputs_embeds=inputs_embeds,
+                            output_attentions=output_attentions,
+                            output_hidden_states=True,
+                            return_dict=True)
 
         batch_size, seq_len = input_ids.shape
 
@@ -185,7 +197,7 @@ class CnlpBertForClassification(RobertaPreTrainedModel):
                     task_logits.device)
                 loss_fct = CrossEntropyLoss(weight=class_weights)
 
-                # loss_fct = CrossEntropyLoss(weight=class_weights)
+                # loss_fct = CrossEntropyLoss()
                 if self.tagger[task_ind] == True:
                     if attention_mask is not None:
                         active_loss = attention_mask.view(-1) == 1

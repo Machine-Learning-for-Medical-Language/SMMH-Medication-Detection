@@ -1,7 +1,7 @@
 python train_system.py \
 --model_name_or_path /home/dongfangxu/Projects/models/bertweet-base \
---data_dir /home/dongfangxu/Projects/SSN_Drug_Normalization/data/bert/classifier/smm4h20+_nertoclassifer/ \
---output_dir /home/dongfangxu/Projects/SSN_Drug_Normalization/data/models/classifier_bert_tweet/ \
+--data_dir /home/dongfangxu/Projects/SSN_Drug_Normalization/data/bert/classifier/smm4h20+_nertoclassifer_upsampling/ \
+--output_dir /home/dongfangxu/Projects/SSN_Drug_Normalization/data/models/classifier_upsampling_bert_tweet/ \
 --task_name smm4h \
 --do_train \
 --do_eval \

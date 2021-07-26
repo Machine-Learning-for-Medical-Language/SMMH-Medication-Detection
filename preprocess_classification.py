@@ -19,24 +19,52 @@ def input_process():
 
     print(len(train_processed))
 
-    read.save_in_tsv(
-        "data/bert/classifier/smm4h20+_nertoclassifer_smallset/train.tsv",
-        train_processed[:1000])
+    # read.save_in_tsv(
+    #     "data/bert/classifier/smm4h20+_nertoclassifer_smallset/train.tsv",
+    #     train_processed[:1000])
 
-    read.save_in_tsv("data/bert/classifier/smm4h20+_nertoclassifer/train.tsv",
-                     train_processed)
+    # read.save_in_tsv("data/bert/classifier/smm4h20+_nertoclassifer/train.tsv",
+    #                  train_processed)
 
     ###### 38,137 tweets (only 93 tweets mentioning at least one drug)
-    dev = read.read_from_tsv("data/raw/BioCreative_ValTask3.tsv")
-    dev_processed = preprocess(dev[1:], ner=False)
-    print(len(dev_processed))
+    # dev = read.read_from_tsv("data/raw/BioCreative_ValTask3.tsv")
+    # dev_processed = preprocess(dev[1:], ner=False)
+    # print(len(dev_processed))
+
+    # read.save_in_tsv(
+    #     "data/bert/classifier/smm4h20+_nertoclassifer_smallset/dev.tsv",
+    #     dev_processed[:1000])
+
+    # read.save_in_tsv("data/bert/classifier/smm4h20+_nertoclassifer/dev.tsv",
+    #                  dev_processed)
+
+
+# input_process()
+
+
+def input_process_2018():
+    ####### 88,988 tweets (only 218 tweets mentioning at least one drug)
+    input_1 = read.read_from_tsv("data/processed/positive_2018_tweet.tsv")
+
+    positive_2018_tweet = preprocess(input_1, ner=False)
+
+    print(len(positive_2018_tweet))
 
     read.save_in_tsv(
-        "data/bert/classifier/smm4h20+_nertoclassifer_smallset/dev.tsv",
-        dev_processed[:1000])
+        "data/bert/classifier/smm4h18_positive_nertoclassifer/train.tsv",
+        positive_2018_tweet)
 
-    read.save_in_tsv("data/bert/classifier/smm4h20+_nertoclassifer/dev.tsv",
-                     dev_processed)
+    input_2 = read.read_from_tsv(
+        "data/processed/positive_found_overlap_2018_tweet.tsv")
+
+    positive_2018_tweet = preprocess(input_2, ner=False)
+
+    print(len(positive_2018_tweet))
+
+    read.save_in_tsv(
+        "data/bert/classifier/smm4h18_positive_overlap_nertoclassifer/train.tsv",
+        positive_2018_tweet)
 
 
-input_process()
+# input_process_2018()
+

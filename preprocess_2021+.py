@@ -50,10 +50,19 @@ def input_process():
 def extract_positive(train_processed):
     input = []
     user_ids = []
+    medication_list = []
+    medication_variant = {}
     for tweet_id, tweet_info in train_processed.items():
         user_id = tweet_info['user_id']
         created_at = tweet_info['created_at']
         tweet_text = tweet_info["text"]
+        medication_list += tweet_info['span']
+        medication_list += tweet_info['drug']
+        for idx, [medication_value, medication_key
+                  ] in enumerate(zip(tweet_info['span'], tweet_info['drug'])):
+            medication_variant = read.add_dict(medication_variant,
+                                               medication_key,
+                                               medication_value)
         medication_text = "___".join(tweet_info['span'])
         normalized_medication = "___".join(tweet_info['drug'])
 
@@ -65,7 +74,7 @@ def extract_positive(train_processed):
         ])
         input = sorted(input, key=lambda x: x[0])
 
-    return input, user_ids
+    return input, user_ids, list(set(medication_list)), medication_variant
 
 
 def get_medication():
@@ -76,20 +85,29 @@ def get_medication():
 
     train_processed = collect_tweets(train)
 
-    train_positive, user_ids = extract_positive(train_processed)
-    print(len(set(user_ids)))
-    print(Counter(user_ids))
-    read.save_in_tsv("data/processed/positive_smm4h_2020+_train.tsv",
-                     train_positive)
-
     dev = read.read_from_tsv("data/raw/BioCreative_ValTask3.tsv")
     dev_processed = collect_tweets(dev[1:])
 
-    dev_positive, user_ids = extract_positive(dev_processed)
-    print(len(set(user_ids)))
-    print(Counter(user_ids))
-    read.save_in_tsv("data/processed/positive_smm4h_2020+_dev.tsv",
-                     dev_positive)
+    # train_positive, user_ids, medication_train, medication_variant_train = extract_positive(
+    #     train_processed)
+    # print(len(set(user_ids)))
+    # print(Counter(user_ids))
+    # read.save_in_tsv("data/processed/positive_smm4h_2020+_train.tsv",
+    #                  train_positive)
+
+    # dev_positive, user_ids, medication, medication_variant_dev = extract_positive(
+    #     dev_processed)
+    # print(len(set(user_ids)))
+    # print(Counter(user_ids))
+    # read.save_in_tsv("data/processed/positive_smm4h_2020+_dev.tsv",
+    #                  dev_positive)
+
+    positive, user_ids, medication, medication_variant = extract_positive(
+        train_processed)
+
+    read.save_in_json("data/processed/medicaions_2021", medication)
+    read.save_in_json("data/processed/medication_varaints_2021",
+                      medication_variant)
 
 
 # get_medication()
@@ -109,4 +127,57 @@ def upsampling():
     #     train_upsampling)
 
 
-upsampling()
+# upsampling()
+
+
+def upsampling_20_18():
+    train_input = read.read_from_tsv(
+        "data/bert/classifier/smm4h20+_nertoclassifer/train.tsv")
+    print(len(train_input))  ###88983
+
+    positive = [item for item in train_input if item[0] == "1"]
+    print(len(positive))  ###218
+
+    positive_2018 = read.read_from_tsv(
+        "data/bert/classifier/smm4h18_positive_nertoclassifer/train.tsv")
+    print(len(positive_2018))  #4540
+
+    positive_overlap_2018 = read.read_from_tsv(
+        "data/bert/classifier/smm4h18_positive_overlap_nertoclassifer/train.tsv"
+    )
+    print(len(positive_overlap_2018))  #1870
+
+    train_2018_overlap_2020_upsampling = (
+        positive + positive_overlap_2018) * 10 + train_input
+    train_2018_2020_upsampling = (positive + positive_2018) * 5 + train_input
+
+    train_2018_overlap_2020_ori = positive + positive_overlap_2018 + train_input
+    train_2018_2020_ori = positive + positive_2018 + train_input
+
+    read.save_in_tsv(
+        "data/bert/classifier/18_positive_overlap_20_nertoclassifer_ori/train.tsv",
+        train_2018_overlap_2020_ori)
+
+    read.save_in_tsv(
+        "data/bert/classifier/18_positive_20_nertoclassifer_ori/train.tsv",
+        train_2018_2020_ori)
+
+
+# upsampling_20_18()
+
+
+def combine_20_18():
+    positive_2018_tweet = read.read_from_tsv(
+        "data/bert/ner/smm4h18_positive_ner/train.tsv")
+    print(len(positive_2018_tweet))
+
+    train_input = read.read_from_tsv("data/bert/ner/smm4h20+/train.tsv")
+    print(len(train_input))
+
+    input = positive_2018_tweet + train_input
+
+    read.save_in_tsv("data/bert/ner/smm4h20+18positive/train.tsv", input)
+    print(len(train_input))
+
+
+combine_20_18()

@@ -1,14 +1,14 @@
 python train_system.py \
---model_name_or_path /home/dongfangxu/Projects/models/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext \
---data_dir /home/dongfangxu/Projects/SSN_Drug_Normalization/data/bert/ner/smm4h20+_smallset/ \
---output_dir /home/dongfangxu/Projects/SSN_Drug_Normalization/data/models/ner_test_smallset/ \
+--model_name_or_path /home/dongfangxu/Projects/models/BiomedNLP-PubMedBERT-base-uncased-abstract-fulltext/ \
+--data_dir /home/dongfangxu/Projects/SSN_Drug_Normalization/data/bert/ner/smm4h20+18positive/ \
+--output_dir /home/dongfangxu/Projects/SSN_Drug_Normalization/data/models/ner_20_18_positive/ \
 --task_name smm4h_ner \
 --do_train \
 --do_eval \
 --do_predict \
---learning_rate 5e-5 \
---per_device_train_batch_size 16 \
+--learning_rate 3e-5 \
+--per_device_train_batch_size 32 \
 --max_seq_length 128 \
---num_train_epochs 5 \
+--num_train_epochs 10 \
 --overwrite_output_dir true \
 --overwrite_cache true

@@ -461,27 +461,31 @@ def main():
                                 writer.write(prediction + "\n")
 
         logging.info("*** Test ***")
-        predictions, labels, metrics = trainer.predict(test_dataset)
+        predictions_test, labels_test, metrics = trainer.predict(test_dataset)
         for task_ind, task_name in enumerate(data_args.task_name):
             label_list_test = test_dataset.get_labels()[task_ind]
 
             if tagger[task_ind]:
-                predictions_id = np.argmax(predictions[task_ind], axis=2)
+                predictions_id_test = np.argmax(predictions_test[task_ind],
+                                                axis=2)
                 true_predictions = [[
                     label_list_test[p]
-                    for (p, l) in zip(predictions_id, label) if l != -100
-                ] for prediction, label in zip(predictions, labels)]
+                    for (p, l) in zip(prediction_id_test, label_test)
+                    if l != -100
+                ] for prediction_id_test, label_test in zip(
+                    predictions_id_test, labels_test)]
                 # labels will be -100 where we don't need to tag
+
             else:
 
                 # if len(label_list_eval) == 2:
                 #     predictions = np.where(predictions[task_ind] >= 0.5, 1, 0)
                 # else:
-                predictions_id = np.argmax(predictions[task_ind], axis=1)
+                predictions_id = np.argmax(predictions_test[task_ind], axis=1)
 
                 true_predictions = [
                     label_list_test[prediction]
-                    for prediction, label in zip(predictions_id, labels)
+                    for prediction, label in zip(predictions_id, labels_test)
                     if label != -100
                 ]
             if trainer.is_world_process_zero():
@@ -501,7 +505,7 @@ def main():
             np.save(
                 os.path.join(training_args.output_dir,
                              "%s_test_predictions" % task_name),
-                predictions[task_ind])
+                predictions_test[task_ind])
 
             # Save predictions
             output_test_predictions_file = os.path.join(

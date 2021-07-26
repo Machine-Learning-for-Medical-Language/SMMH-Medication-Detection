@@ -29,7 +29,7 @@ def collect_tweets(tweets):
     tweets_processed_medication = {}
 
     for tweet in tweets:
-        if tweet[6] != "-":
+        if tweet[6] != "-" and len(tweet[6]) > 0:
             tweets_processed_medication = add_tweet_info(
                 tweets_processed_medication, tweet)
         else:
@@ -38,7 +38,26 @@ def collect_tweets(tweets):
     # for key, value in tweets_processed_medication.items():
     #     print(value["text"], value["offsets"], value["span"])
     #     print()
-    # tweets_processed_medication.update(tweets_processed_nomedication)
+    tweets_processed_medication.update(tweets_processed_nomedication)
+
+    return tweets_processed_medication
+
+
+def collect_tweets_2018(tweets):
+    tweets_processed_nomedication = {}
+    tweets_processed_medication = {}
+
+    for tweet in tweets:
+        if len(tweet[6]) > 0:
+            tweets_processed_medication = add_tweet_info(
+                tweets_processed_medication, tweet)
+        else:
+            tweets_processed_nomedication = add_tweet_info(
+                tweets_processed_nomedication, tweet)
+    # for key, value in tweets_processed_medication.items():
+    #     print(value["text"], value["offsets"], value["span"])
+    #     print()
+    tweets_processed_medication.update(tweets_processed_nomedication)
 
     return tweets_processed_medication
 
@@ -133,7 +152,11 @@ def preprocess(tweets_from_tsv, ner=False):
 
     #     print(tweet_tokens_tokenized)
     #     print(token_span_info_processed)
-    #     print(offsets, medication_text)
+        for medication_text_single in medication_text:
+            print("Keyword: " + medication_text_single)
+            print("Tweet: " + " ".join(tweet_input))
+            print()
+
     #     print()
     # print(i)
     # print(missing)

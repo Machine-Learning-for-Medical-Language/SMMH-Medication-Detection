@@ -493,20 +493,6 @@ class StJointProcessor(CnlpProcessor):
         return concept_labels
 
 
-class CnJointProcessor(LabeledSentenceProcessor):
-    """ Processor for the negation datasets """
-    def get_labels(self):
-        import read_files as read
-        concept_labels = read.read_from_json(
-            "data/n2c2/triplet_network/st_subpool/ontology_cui") + [
-                'CUI-less'
-            ]
-        return concept_labels
-
-    def get_one_score(self, results):
-        return results['f1']
-
-
 cnlp_processors = {
     'polarity': NegationProcessor,
     'dtr': DtrProcessor,

@@ -201,6 +201,10 @@ def main():
             output_mode.append(cnlp_output_modes[task_name])
             tagger.append(cnlp_output_modes[task_name] == tagging)
 
+        num_labels.append(2)
+        output_mode.append("classification")
+        tagger.append(False)
+
         # num_labels = [len(cnlp_processors[task_name]().get_labels() for task_name in data_args.task_name)
         # output_mode = [cnlp_output_modes[data_args.task_name]for task_name in data_args.task_name)
         # tagger = cnlp_output_modes[data_args.task_name] == tagging
@@ -366,6 +370,7 @@ def main():
         return compute_metrics_fn
 
     # Initialize our Trainer
+
     trainer = Trainer(
         model=model,
         args=training_args,
@@ -485,8 +490,7 @@ def main():
 
                 true_predictions = [
                     label_list_test[prediction]
-                    for prediction, label in zip(predictions_id, labels_test)
-                    if label != -100
+                    for prediction in predictions_id
                 ]
             if trainer.is_world_process_zero():
                 with open(output_test_file, "w") as writer:

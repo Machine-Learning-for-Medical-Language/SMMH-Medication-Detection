@@ -51,6 +51,7 @@ class InputFeatures:
     token_type_ids: Optional[List[int]] = None
     # event_tokens: Optional[List[int]] = None
     labels: List[Optional[Union[int, float, List[int]]]] = None
+    text_labels: List[Optional[Union[int, float, List[int]]]] = None
 
     def to_json_string(self):
         """Serializes this instance to a JSON string."""
@@ -128,6 +129,7 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
     def tokenize_and_align_labels(labels):
 
         labels_new = []
+        classifier_label = []
         for i, label in enumerate(labels):
             word_ids = batch_encoding.word_ids(batch_index=i)
             previous_word_idx = None
@@ -147,10 +149,14 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
                 previous_word_idx = word_idx
 
             labels_new.append(label_ids)
-        return labels_new
+            if 1 in label_ids:
+                classifier_label.append(1)
+            else:
+                classifier_label.append(0)
+        return labels_new, classifier_label
 
     if output_mode == 'tagging':
-        labels = tokenize_and_align_labels(labels)
+        labels, classifier_labels = tokenize_and_align_labels(labels)
 
     # This code has to solve the problem of properly setting labels for word pieces that do not actually need to be tagged.
 
@@ -175,7 +181,9 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
         # else:
         #     inputs['event_tokens'] = [1] * len(inputs['input_ids'])
         if labels[0] is not None:
-            feature = InputFeatures(**inputs, labels=labels[i])
+            feature = InputFeatures(**inputs,
+                                    labels=labels[i],
+                                    text_labels=classifier_labels[i])
         else:
             feature = InputFeatures(**inputs)
         if output_mode == 'tagging':

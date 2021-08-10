@@ -133,6 +133,35 @@ def extract_positive(train_processed):
                      positive_tweet_found_subset)
 
 
+def update_positive_not_found_annotation_2018():
+    annotated_2018 = read.read_from_tsv(
+        "data/processed/positive_not_found_2018_tweet_annotate_1.tsv")
+
+    positive_tweet_annotated_2018 = []
+
+    for item in annotated_2018:
+        tweet_id, user_id, created_at, text, start, end, medication, medication_norm = item
+
+        if medication in text:
+            text = text.replace("\t","")
+            start = text.find(medication)
+            end = start + len(medication)
+            medication_in_text = medication
+            positive_tweet_annotated_2018.append([
+                tweet_id, user_id, created_at, text, start, end,
+                medication_in_text,
+                medication_norm.lower()
+            ])
+        else:
+            print(item)
+    read.save_in_tsv(
+        "data/processed/positive_not_found_2018_tweet_annotate_position.tsv",
+        positive_tweet_annotated_2018)
+
+
+# update_positive_not_found_annotation_2018()
+
+
 def get_medication():
     from tokenization import collect_tweets_2018, preprocess
     input_1 = read.read_from_tsv(
@@ -145,7 +174,7 @@ def get_medication():
     extract_positive(train)
 
 
-get_medication()
+# get_medication()
 
 
 def upsampling():

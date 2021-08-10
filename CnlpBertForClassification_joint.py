@@ -90,13 +90,13 @@ class CnlpBertForClassification(BertPreTrainedModel):
     def __init__(
             self,
             config,
-            # num_labels_list=[3, 2],
-            num_labels_list=[3],
+            num_labels_list=[3, 2],
+            # num_labels_list=[2],
             layer=-1,
             freeze=False,
             tokens=False,
-            tagger=[True]):
-        # tagger=[True, False]):
+            # tagger=[False]):
+            tagger=[True, False]):
 
         ###### update paramters "num_labels_list" and "tagger" for different tasks #######
         super().__init__(config)
@@ -143,6 +143,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
         head_mask=None,
         inputs_embeds=None,
         labels=None,
+        text_labels=None,
         output_attentions=None,
         output_hidden_states=None,
         event_tokens=None,
@@ -178,7 +179,7 @@ class CnlpBertForClassification(BertPreTrainedModel):
         batch_size, seq_len = input_ids.shape
 
         logits = []
-        task_labels = [labels]
+        task_labels = [labels, text_labels]
 
         loss = None
         for task_ind, task_num_labels in enumerate(self.num_labels):

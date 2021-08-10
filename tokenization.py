@@ -5,7 +5,7 @@ from nltk.tokenize import TweetTokenizer
 
 def add_tweet_info(tweet_dict, info):
     tweet_id, user_id, created_at, text, start, end, span, drug = info[:8]
-    if start != "-":
+    if start != "-" and start != "_":
         start = int(start)
         end = int(end)
     if tweet_id not in tweet_dict:
@@ -29,7 +29,7 @@ def collect_tweets(tweets):
     tweets_processed_medication = {}
 
     for tweet in tweets:
-        if tweet[6] != "-" and len(tweet[6]) > 0:
+        if tweet[6] != "-" and tweet[6] != "_" and len(tweet[6]) > 0:
             tweets_processed_medication = add_tweet_info(
                 tweets_processed_medication, tweet)
         else:
@@ -122,7 +122,7 @@ def preprocess(tweets_from_tsv, ner=False):
         tweet_input = [item[0] for item in token_span_info_processed]
 
         tweet_label = ["O"] * len(tweet_input)
-        if offsets[0][0] != "-":
+        if offsets[0][0] != "-" and offsets[0][0] != "_":
             for (start_offset, end_offset) in offsets:
                 # if start_offset == 129 and end_offset == 135:
                 #     print(1)
@@ -152,10 +152,10 @@ def preprocess(tweets_from_tsv, ner=False):
 
     #     print(tweet_tokens_tokenized)
     #     print(token_span_info_processed)
-        for medication_text_single in medication_text:
-            print("Keyword: " + medication_text_single)
-            print("Tweet: " + " ".join(tweet_input))
-            print()
+    # for medication_text_single in medication_text:
+    #     print("Keyword: " + medication_text_single)
+    #     print("Tweet: " + " ".join(tweet_input))
+    #     print()
 
     #     print()
     # print(i)

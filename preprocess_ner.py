@@ -60,3 +60,55 @@ def input_process_2018():
 # input_process_2018()
 
 
+def input_process_2018():
+    input_1 = read.read_from_tsv("data/processed/positive_2018_tweet.tsv")
+    input_2 = read.read_from_tsv(
+        "data/processed/positive_not_found_2018_tweet_annotate_position.tsv")
+    input_3 = read.read_from_tsv("data/processed/negative_2018_tweet.tsv")
+
+    positive_2018_tweet = preprocess(input_1 + input_2, ner=True)
+
+    print(len(positive_2018_tweet))
+    read.save_in_tsv("data/bert/ner/smm4h18_positive_all_ner/train.tsv",
+                     positive_2018_tweet)
+
+
+# input_process_2018()
+
+
+def process_text(text):
+    text = text.replace("\n", " ")
+    return text
+
+
+def process_top200():
+    # import pandas as pd
+    # data = pd.read_csv('data/raw/top200_en.csv')
+
+    # def clean(row):
+    #     return row['text'].replace("\n", "")
+
+    # data['clean'] = data.apply(clean, axis=1)
+    # data.drop(['text'], axis=1)
+    # data.rename(columns={'clean': 'text'})
+    # data = data[[
+    #     'tweet_id', 'user_id', 'created_at', 'text', 'start', 'end', 'span',
+    #     'drug'
+    # ]]
+    # data.to_csv("data/raw/top200_en.tsv", sep='\t', encoding='utf-8')
+
+    data = read.read_from_csv("data/raw/top200_en.csv")
+    input_new = []
+    for item in data[1:]:
+        item = item[1:]
+        item[3] = process_text(item[3])
+        input_new.append(item)
+
+    positive_top_200_tweet = preprocess(input_new, ner=True)
+    # print(positive_top_200_tweet[:10])
+
+    read.save_in_tsv("data/bert/ner/top200_positive/train.tsv",
+                     positive_top_200_tweet)
+
+
+process_top200()

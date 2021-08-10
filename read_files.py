@@ -91,7 +91,10 @@ def read_from_csv(filename):
 def save_in_tsv(filename, items):
     create_folder(filename)
     with open(filename, 'w', encoding='utf8', newline='') as tsv_file:
-        tsv_writer = csv.writer(tsv_file, delimiter='\t', lineterminator='\n')
+        tsv_writer = csv.writer(tsv_file,
+                                delimiter='\t',
+                                lineterminator='\n',
+                                quoting=csv.QUOTE_MINIMAL)
         for item in items:
             tsv_writer.writerow(item)
 

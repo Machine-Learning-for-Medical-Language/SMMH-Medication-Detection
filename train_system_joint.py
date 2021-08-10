@@ -39,9 +39,9 @@ from transformers.data.processors.utils import DataProcessor, InputExample, Inpu
 from transformers.tokenization_utils import PreTrainedTokenizer
 from transformers.training_args import EvaluationStrategy, IntervalStrategy
 
-from cnlp_data_Bert import ClinicalNlpDataset, DataTrainingArguments
+from cnlp_data_Bert_joint import ClinicalNlpDataset, DataTrainingArguments
 from cnlp_processors import cnlp_compute_metrics, cnlp_output_modes, cnlp_processors, tagging
-from CnlpBertForClassification import CnlpBertForClassification
+from CnlpBertForClassification_joint import CnlpBertForClassification
 
 # from trainer1 import Trainer
 
@@ -199,9 +199,9 @@ def main():
             output_mode.append(cnlp_output_modes[task_name])
             tagger.append(cnlp_output_modes[task_name] == tagging)
 
-        # num_labels.append(2)
-        # output_mode.append("classification")
-        # tagger.append(False)
+        num_labels.append(2)
+        output_mode.append("classification")
+        tagger.append(False)
 
         # num_labels = [len(cnlp_processors[task_name]().get_labels() for task_name in data_args.task_name)
         # output_mode = [cnlp_output_modes[data_args.task_name]for task_name in data_args.task_name)

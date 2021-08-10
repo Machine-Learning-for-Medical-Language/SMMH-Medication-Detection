@@ -129,6 +129,8 @@ def upsampling():
 
 # upsampling()
 
+# def dataset_2018():
+
 
 def upsampling_20_18():
     train_input = read.read_from_tsv(
@@ -180,4 +182,45 @@ def combine_20_18():
     print(len(train_input))
 
 
-combine_20_18()
+# combine_20_18()
+
+
+def combine_20_18_all():
+    positive_2018_tweet = read.read_from_tsv(
+        "data/bert/ner/smm4h18_positive_all_ner/train.tsv")
+    print(len(positive_2018_tweet))
+
+    train_input = read.read_from_tsv("data/bert/ner/smm4h20+/train.tsv")
+    print(len(train_input))
+
+    input = positive_2018_tweet + train_input
+
+    read.save_in_tsv("data/bert/ner/smm4h20+18_positive_all/train.tsv", input)
+    print(len(train_input))
+
+
+# combine_20_18_all()
+
+
+def combine_20_18_top200():
+    positive_2018_tweet = read.read_from_tsv(
+        "data/bert/ner/smm4h18_positive_all_ner/train.tsv")
+    print(len(positive_2018_tweet))
+
+    train_input = read.read_from_tsv("data/bert/ner/smm4h20+/train.tsv")
+    print(len(train_input))
+
+    train_input_top200 = read.read_from_tsv(
+        "data/bert/ner/top200_positive/train.tsv")
+    print(len(train_input_top200))
+    # for item in train_input_top200:
+    #     if len(item) != 2:
+    #         print(item)
+
+    input = positive_2018_tweet + train_input + train_input_top200
+
+    read.save_in_tsv("data/bert/ner/smm4h20_18_top200/train.tsv", input)
+    print(len(input))
+
+
+combine_20_18_top200()

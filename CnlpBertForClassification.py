@@ -5,11 +5,11 @@ from torch import nn
 from torch.nn import CrossEntropyLoss, MSELoss
 from torch.nn.modules.loss import BCELoss
 from transformers.modeling_outputs import SequenceClassifierOutput
-from transformers.models.bert.modeling_bert import BertConfig, BertForSequenceClassification, BertModel, \
-    BertPreTrainedModel
+# from transformers.models.bert.modeling_bert import BertConfig, BertForSequenceClassification, BertModel, \
+#     BertPreTrainedModel
 
-# from transformers.models.roberta.modeling_roberta import RobertaConfig, RobertaForSequenceClassification, \
-#     RobertaModel, RobertaPreTrainedModel
+from transformers.models.roberta.modeling_roberta import RobertaConfig, RobertaForSequenceClassification, \
+    RobertaModel, RobertaPreTrainedModel
 
 logger = logging.getLogger(__name__)
 
@@ -85,32 +85,32 @@ class RepresentationProjectionLayer(nn.Module):
         return x
 
 
-# class CnlpBertForClassification(RobertaPreTrainedModel):
-class CnlpBertForClassification(BertPreTrainedModel):
+class CnlpBertForClassification(RobertaPreTrainedModel):
+# class CnlpBertForClassification(BertPreTrainedModel):
     def __init__(
             self,
             config,
             # num_labels_list=[3, 2],
-            num_labels_list=[3],
+            num_labels_list=[2],
             layer=-1,
             freeze=False,
             tokens=False,
-            tagger=[True]):
+            tagger=[False]):
         # tagger=[True, False]):
 
         ###### update paramters "num_labels_list" and "tagger" for different tasks #######
         super().__init__(config)
         self.num_labels = num_labels_list
 
-        # self.roberta = RobertaModel(config)
-        # if freeze:
-        #     for param in self.roberta.parameters():
-        #         param.requires_grad = False
-
-        self.bert = BertModel(config)
+        self.roberta = RobertaModel(config)
         if freeze:
-            for param in self.bert.parameters():
+            for param in self.roberta.parameters():
                 param.requires_grad = False
+
+        # self.bert = BertModel(config)
+        # if freeze:
+        #     for param in self.bert.parameters():
+        #         param.requires_grad = False
 
         self.feature_extractors = nn.ModuleList()
         self.classifiers = nn.ModuleList()
@@ -155,25 +155,25 @@ class CnlpBertForClassification(BertPreTrainedModel):
             If :obj:`config.num_labels > 1` a classification loss is computed (Cross-Entropy).
         """
 
-        # outputs = self.roberta(input_ids,
-        #                        attention_mask=attention_mask,
-        #                        token_type_ids=token_type_ids,
-        #                        position_ids=position_ids,
-        #                        head_mask=head_mask,
-        #                        inputs_embeds=inputs_embeds,
-        #                        output_attentions=output_attentions,
-        #                        output_hidden_states=True,
-        #                        return_dict=True)
+        outputs = self.roberta(input_ids,
+                                attention_mask=attention_mask,
+                                token_type_ids=token_type_ids,
+                                position_ids=position_ids,
+                                head_mask=head_mask,
+                                inputs_embeds=inputs_embeds,
+                                output_attentions=output_attentions,
+                                output_hidden_states=True,
+                                return_dict=True)
 
-        outputs = self.bert(input_ids,
-                            attention_mask=attention_mask,
-                            token_type_ids=token_type_ids,
-                            position_ids=position_ids,
-                            head_mask=head_mask,
-                            inputs_embeds=inputs_embeds,
-                            output_attentions=output_attentions,
-                            output_hidden_states=True,
-                            return_dict=True)
+        # outputs = self.bert(input_ids,
+        #                     attention_mask=attention_mask,
+        #                     token_type_ids=token_type_ids,
+        #                     position_ids=position_ids,
+        #                     head_mask=head_mask,
+        #                     inputs_embeds=inputs_embeds,
+        #                     output_attentions=output_attentions,
+        #                     output_hidden_states=True,
+        #                     return_dict=True)
 
         batch_size, seq_len = input_ids.shape
 

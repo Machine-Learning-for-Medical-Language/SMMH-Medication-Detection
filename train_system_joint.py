@@ -43,6 +43,8 @@ from cnlp_data_Bert_joint import ClinicalNlpDataset, DataTrainingArguments
 from cnlp_processors import cnlp_compute_metrics, cnlp_output_modes, cnlp_processors, tagging
 from CnlpBertForClassification_joint import CnlpBertForClassification
 
+from transformers import RobertaTokenizer
+
 # from trainer1 import Trainer
 
 logger = logging.getLogger(__name__)
@@ -224,6 +226,7 @@ def main():
         finetuning_task=data_args.task_name,
     )
     tokenizer = AutoTokenizer.from_pretrained(
+    # tokenizer = RobertaTokenizer.from_pretrained(
         model_args.tokenizer_name
         if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,

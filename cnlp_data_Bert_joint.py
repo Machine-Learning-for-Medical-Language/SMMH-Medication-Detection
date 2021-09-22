@@ -18,6 +18,10 @@ from cnlp_processors import cnlp_output_modes, cnlp_processors
 
 logger = logging.getLogger(__name__)
 
+special_tokens = [
+    '<e>', '</e>', '<a1>', '</a1>', '<a2>', '</a2>', '<cr>', '<neg>', 'URL',
+    '@USER'
+]
 
 def list_field(default=None, metadata=None):
     return field(default_factory=lambda: default, metadata=metadata)
@@ -116,15 +120,50 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
 
     padding = False
     max_seq_length = min(max_seq_length, tokenizer.model_max_length)
-
+    
     batch_encoding = tokenizer(
         sentences,
         padding=padding,
         truncation=True,
         max_length=max_seq_length,
         # We use this argument because the texts in our dataset are lists of words (with a label for each word).
-        is_split_into_words=is_split_into_words,
-    )
+        is_split_into_words=is_split_into_words)
+    
+    # batch_encoding = tokenizer.batch_encode_plus(
+    #     sentences,
+    #     padding=padding,
+    #     truncation=True,
+    #     max_length=max_seq_length,
+    #     # We use this argument because the texts in our dataset are lists of words (with a label for each word).
+    #     is_split_into_words=is_split_into_words,
+    #     return_token_type_ids=True,
+    #     return_attention_mask=True)
+
+    def tokenize_and_align_labels_roberta(labels):
+        encoded_labels = []
+        classifier_label = []
+        for i, label in enumerate(labels):
+            sent_labels = []
+
+            ## FIXME -- this is stupid and won't work outside the roberta encoding
+            label_ind = 0
+            for wp_ind, wp in enumerate(batch_encoding[i].tokens):
+                if wp.startswith('Ġ') or wp in special_tokens:
+                    sent_labels.append(labels[i].pop(0))
+                else:
+                    sent_labels.append(-100)
+                # if wp_ind in word_inds:
+                #     sent_labels.append(labels[sent_ind][label_ind])
+                #     label_ind += 1
+                # else:
+                #     sent_labels.append(-100)
+
+            encoded_labels.append(sent_labels)
+            if 1 in sent_labels:
+                classifier_label.append(1)
+            else:
+                classifier_label.append(0)
+        return encoded_labels, classifier_label
 
     def tokenize_and_align_labels(labels):
 
@@ -157,6 +196,7 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
 
     if output_mode == 'tagging':
         labels, classifier_labels = tokenize_and_align_labels(labels)
+        # labels, classifier_labels = tokenize_and_align_labels_roberta(labels)
 
     # This code has to solve the problem of properly setting labels for word pieces that do not actually need to be tagged.
 
@@ -293,6 +333,7 @@ class ClinicalNlpDataset(Dataset):
                 "cached_{}-{}_{}_{}".format(dataconfig, domain, mode.value,
                                             tokenizer.__class__.__name__),
             )
+            print(cached_features_file)
 
             # Make sure only the first process in distributed training processes the dataset,
             # and the others will use the cache.

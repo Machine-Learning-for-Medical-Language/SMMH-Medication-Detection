@@ -14,7 +14,6 @@ from sklearn.metrics import f1_score, matthews_corrcoef, precision_score, recall
 from torch.utils.data.dataset import Dataset
 from transformers.data.metrics import simple_accuracy
 from transformers.data.processors.utils import DataProcessor, InputExample
-from transformers.tokenization_utils import PreTrainedTokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -36,13 +35,16 @@ def tagging_metrics(task_name, preds, labels):
     num_correct = (preds == labels).sum()
 
     acc = num_correct / len(preds)
-    f1 = f1_score(preds, labels, average=None)
+    f1 = f1_score(labels, preds, average=None)
 
     return {
         'acc': acc,
         # 'token_f1': f1,
-        'f1': seq_f1([pred_seq], [label_seq]),
-        'report': '\n' + seq_cls([pred_seq], [label_seq])
+        'f1': seq_f1(y_true=[label_seq], y_pred=[pred_seq]),
+        'report': '\n' + seq_cls(
+            y_true=[label_seq],
+            y_pred=[pred_seq],
+        )
     }
 
 

@@ -117,9 +117,10 @@ def cnlp_convert_examples_to_features(examples: List[InputExample],
 
     padding = False
     max_seq_length = min(max_seq_length, tokenizer.model_max_length)
-
+    
     batch_encoding = tokenizer(
         sentences,
+        encoding = en,
         padding=padding,
         truncation=True,
         max_length=max_seq_length,

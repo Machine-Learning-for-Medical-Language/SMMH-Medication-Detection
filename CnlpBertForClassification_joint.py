@@ -46,6 +46,24 @@ class ClassificationHead(nn.Module):
         x = self.out_proj(x)
         return x
 
+class DiceLoss(nn.Module):
+    """
+    DiceLoss implemented from 'Dice Loss for Data-imbalanced NLP Tasks'
+    Useful in dealing with unbalanced data
+    """
+    def __init__(self):
+        super(DiceLoss, self).__init__()
+
+    def forward(self, input, target):
+        '''
+        input: [N, C]
+        target: [N, ]
+        '''
+        prob = torch.softmax(input, dim=1)
+        prob = torch.gather(prob, dim=1, index=target.unsqueeze(1))
+        dsc_i = 1 - ((1 - prob) * prob) / ((1 - prob) * prob + 1)
+        dice_loss = dsc_i.mean()
+        return dice_loss
 
 class RepresentationProjectionLayer(nn.Module):
     def __init__(self, config, layer=-1, tokens=False, tagger=False):
@@ -157,14 +175,14 @@ class CnlpBertForClassification(BertPreTrainedModel):
         """
 
         # outputs = self.roberta(input_ids,
-        #                        attention_mask=attention_mask,
-        #                        token_type_ids=token_type_ids,
-        #                        position_ids=position_ids,
-        #                        head_mask=head_mask,
-        #                        inputs_embeds=inputs_embeds,
-        #                        output_attentions=output_attentions,
-        #                        output_hidden_states=True,
-        #                        return_dict=True)
+        #                         attention_mask=attention_mask,
+        #                         token_type_ids=token_type_ids,
+        #                         position_ids=position_ids,
+        #                         head_mask=head_mask,
+        #                         inputs_embeds=inputs_embeds,
+        #                         output_attentions=output_attentions,
+        #                         output_hidden_states=True,
+        #                         return_dict=True)
 
         outputs = self.bert(input_ids,
                             attention_mask=attention_mask,
@@ -180,8 +198,15 @@ class CnlpBertForClassification(BertPreTrainedModel):
 
         logits = []
         task_labels = [labels, text_labels]
-
+        
+        # task_loss_list = []
+        
+        # weights = [0.0, 1.0]
+        
+        # loss_fcts = [CrossEntropyLoss(), DiceLoss()]
+        
         loss = None
+        
         for task_ind, task_num_labels in enumerate(self.num_labels):
             features = self.feature_extractors[task_ind](outputs.hidden_states,
                                                          event_tokens)
@@ -199,8 +224,9 @@ class CnlpBertForClassification(BertPreTrainedModel):
                 # weights = [0.1, 50]
                 # class_weights = torch.FloatTensor(weights).to(
                 #     task_logits.device)
+                
                 loss_fct = CrossEntropyLoss()
-
+                
                 # loss_fct = CrossEntropyLoss()
                 # if self.tagger[task_ind] == True:
                 #     if attention_mask is not None:
@@ -225,11 +251,14 @@ class CnlpBertForClassification(BertPreTrainedModel):
                 #     # else:
                 task_loss = loss_fct(task_logits.view(-1, task_num_labels),
                                      task_labels[task_ind].view(-1))
+                # task_loss_list.append(task_loss)
 
                 if loss is None:
                     loss = task_loss
                 else:
-                    loss += task_loss
+                    loss +=  task_loss
+        
+
 
 
 #         if not return_dict:

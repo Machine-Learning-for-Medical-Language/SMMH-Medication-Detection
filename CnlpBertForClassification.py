@@ -91,12 +91,11 @@ class CnlpBertForClassification(BertPreTrainedModel):
             self,
             config,
             # num_labels_list=[3, 2],
-            num_labels_list=[2],
+            num_labels_list=[3],     ##### Change this one for ner
             layer=-1,
             freeze=False,
             tokens=False,
-            tagger=[False]):
-        # tagger=[True, False]):
+            tagger=[True]):      ##### Change this one for ner
 
         ###### update paramters "num_labels_list" and "tagger" for different tasks #######
         super().__init__(config)
